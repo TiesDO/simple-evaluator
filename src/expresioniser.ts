@@ -1,37 +1,45 @@
-import { Token, TokenType } from './tokenizer'
+import Tokenizer, { IToken, OperandToken, OperatorToken, TokenType, isOperand } from './tokenizer'
 
 function precedence(operator: TokenType) {
   switch(operator) {
-    case TokenType.Period: return 0;
+    case TokenType.Period: return 3;
 
     case TokenType.Multiply:
-    case TokenType.Divide: return 1;
+    case TokenType.Divide: return 2;
 
     case TokenType.Add:
-    case TokenType.Subtract: return 2;
+    case TokenType.Subtract: return 1;
 
     default: return -1
   }
 }
 
-function isOperand(token: TokenType) {
-  return [TokenType.String, TokenType.Number, TokenType.True, TokenType.False,
-    TokenType.Undefined, TokenType.Null, TokenType.Ident].includes(token)
+function isOperandToken(token: IToken): token is OperandToken {
+  return token.classification === "operand"
 }
 
-export default function evalutatePostFixExpression(tokens: Token[]): any {
-  const operandStack = []
+function isOperatorToken(token: IToken): token is OperatorToken {
+  return token.classification === "operator"
+}
+
+export function evalutatePostFixExpression(tokens: IToken[], context: Object): any {
+  const operandStack: OperandToken[] = []
 
   for (const token of tokens) {
-    if (isOperand(token.type)) {
+    if (isOperandToken(token)) {
       operandStack.push(token)
-    } else {
+    } else if (isOperatorToken(token)) {
       if (operandStack.length < 2) { throw Error("not enough operands on stack") }
 
-      const right = <Token>operandStack.pop()
-      const left = <Token>operandStack.pop()
+      const right: OperandToken = <OperandToken>operandStack.pop()
+      let left: OperandToken = <OperandToken>operandStack.pop()
 
-      operandStack.push(evaluateOperator(left, right, token.type))
+      if (left.type === TokenType.Object) {
+        const value: any = context[<keyof Object>left.value]
+        left = new OperandToken(TokenType.Ident, value)
+      }
+
+      operandStack.push(token.evaluate(left, right, context))
     }
   }
 
@@ -39,23 +47,16 @@ export default function evalutatePostFixExpression(tokens: Token[]): any {
     throw Error("uhmm")
   }
 
-  return operandStack[0]
-}
-
-export function evaluateOperator(left: Token, right: Token, operator: TokenType): Token {
-  switch (operator) {
-    case TokenType.Add: return new Token(TokenType.Number, left.value + right.value)
-    default: throw Error("unknown operator")
-  }
+  return operandStack[0].value
 }
 
 // Convert an infix expression to its postfix equivelant
-export function toPostFix(tokens: Token[]): Token[] {
-  const tokenStack: Token[] = []
-  const output: Token[] = []
+export function toPostFix(tokens: IToken[]): IToken[] {
+  const tokenStack: IToken[] = []
+  const output: IToken[] = []
 
   for(const token of tokens) {
-    if (isOperand(token.type)) {
+    if (isOperandToken(token)) {
       output.push(token)
       continue
     }
@@ -67,7 +68,7 @@ export function toPostFix(tokens: Token[]): Token[] {
 
     if (token.type === TokenType.RBrace) {
       while(tokenStack.length && tokenStack.at(-1)?.type !== TokenType.LBrace) {
-        output.push(<Token>tokenStack.pop())
+        output.push(<IToken>tokenStack.pop())
       }
       tokenStack.pop()
     } else {
@@ -75,14 +76,14 @@ export function toPostFix(tokens: Token[]): Token[] {
         tokenStack.length && tokenStack.at(-1)?.type !== TokenType.LBrace
         && precedence(<TokenType>tokenStack.at(-1)?.type) >= precedence(token.type)
       ) {
-        output.push(<Token>tokenStack.pop())
+        output.push(<IToken>tokenStack.pop())
       }
       tokenStack.push(token)
     }
   }
 
   while(tokenStack.length) {
-    output.push(<Token>tokenStack.pop())
+    output.push(<IToken>tokenStack.pop())
   }
 
   return output

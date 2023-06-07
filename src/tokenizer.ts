@@ -6,6 +6,7 @@ export enum TokenType {
   False,
   Undefined,
   Null,
+  Object,
 
   Period,
   LBracket,
@@ -53,23 +54,55 @@ function isLetter(char: string): boolean {
   return (_a <= c && c <= _z) || (_A <= c && c <= _Z)
 }
 
-export class Token {
-  public readonly hasValue: boolean;
+export interface IToken {
+  classification: "operand" | "operator"
+  type: TokenType
+}
 
+export class OperandToken implements IToken {
+  public get classification(): "operand" { return "operand" }
   constructor(
     public readonly type: TokenType,
     public readonly value: any = undefined) {
-    this.hasValue = value ? true : false
   }
 }
 
-export default class Tokenizer implements IterableIterator<Token> {
+export class OperatorToken implements IToken {
+  public get classification(): "operator" { return "operator" }
+
+  constructor(public readonly type: TokenType) {}
+
+  public evaluate(left: OperandToken, right: OperandToken, context: Object): any {
+    let result: any
+
+    switch(this.type) {
+      case TokenType.Add: result = left.value + right.value; break;
+      case TokenType.Subtract: result = left.value - right.value; break;
+      case TokenType.Multiply: result = left.value * right.value; break;
+      case TokenType.Divide: result = left.value / right.value; break;
+
+      case TokenType.Period: result = left.value[right.value]; break;
+
+      case TokenType.Unknown: default: return undefined
+    }
+
+    return new OperandToken(left.type, result)
+  }
+}
+
+export function isOperand(token: TokenType) {
+  return [TokenType.String, TokenType.Number, TokenType.True, TokenType.False,
+    TokenType.Undefined, TokenType.Null, TokenType.Ident, TokenType.Object].includes(token)
+}
+
+export default class Tokenizer implements IterableIterator<IToken> {
   private idx: number
+  private previous: IToken | undefined
 
   private get char() { return this.expression.charAt(this.idx) }
   private get nextChar() { return this.expression.charAt(this.idx + 1) }
   private get withinBounds() { return this.idx < this.expression.length }
-  private get isDone() { return this.idx <= this.expression.length }
+  private get notDone() { return this.idx <= this.expression.length }
   private get isWhiteSpace(): boolean { return this.char === ' ' || this.char === '\n' || this.char === '\r' || this.char === '\t' }
 
   private get isDigit(): boolean { return isDigit(this.char) }
@@ -79,7 +112,7 @@ export default class Tokenizer implements IterableIterator<Token> {
     this.idx = 0
   }
 
-  next(): IteratorResult<Token, undefined> {
+  next(): IteratorResult<IToken, undefined> {
     let type: TokenType = TokenType.Unknown
     let charCount: number = 1
     let value: any = undefined;
@@ -125,12 +158,20 @@ export default class Tokenizer implements IterableIterator<Token> {
     }
 
     this.idx += charCount
-    return this.isDone
-      ? { value: new Token(type, value), done: false }
-      : { value: undefined, done: true }
+
+    if (this.notDone) {
+      const token = isOperand(type)
+        ? new OperandToken(type, value)
+        : new OperatorToken(type)
+
+      this.previous = token
+      return { value: token, done: false }
+    } else {
+      return { value: undefined, done: true }
+    }
   }
 
-  [Symbol.iterator](): IterableIterator<Token> { return this }
+  [Symbol.iterator](): IterableIterator<IToken> { return this }
 
   private skipWhiteSpace() {
     while (this.withinBounds && this.isWhiteSpace) {
@@ -231,9 +272,18 @@ export default class Tokenizer implements IterableIterator<Token> {
       case KEYWORDS[1]: type = TokenType.False; break;
       case KEYWORDS[2]: type = TokenType.Null; break;
       case KEYWORDS[3]: type = TokenType.Undefined; break;
-      default: type = TokenType.Ident; break;
+      default: 
+        type = this.previous?.type === TokenType.Period
+          ? TokenType.Ident
+          : TokenType.Object
+      break;
     }
 
-    return [type, offset, type === TokenType.Ident ? value : undefined]
+    return [
+      type, 
+      offset, 
+      type === TokenType.Ident || type === TokenType.Object
+        ? value 
+        : undefined]
   }
 }

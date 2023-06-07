@@ -1,17 +1,14 @@
-import Tokenizer, { TokenType, Token } from '../tokenizer'
+import Tokenizer, { TokenType, IToken, isOperand } from '../tokenizer'
 
 describe("token creation", () => {
-  const toTokens = (expression: string): Token[] => {
+  const toTokens = (expression: string): IToken[] => {
     return [...new Tokenizer(expression)]
   }
 
-  const testToken = (token: Token, type: TokenType, value: any = undefined) => {
+  const testToken = (token: IToken, type: TokenType, value: any = undefined) => {
     expect(token).toHaveProperty("type", type)
-    if (value) {
+    if (isOperand(token.type)) {
       expect(token).toHaveProperty("value", value)
-      expect(token).toHaveProperty("hasValue", true)
-    } else {
-      expect(token).toHaveProperty("hasValue", false)
     }
   }
 
@@ -134,10 +131,12 @@ describe("token creation", () => {
 
   describe("complex tokens", () => {
     it ("reads identifiers", () => {
-      const tokens = toTokens("hello")
+      const tokens = toTokens("hello.world")
 
-      expect(tokens).toHaveLength(1)
-      testToken(tokens[0], TokenType.Ident, "hello")
+      expect(tokens).toHaveLength(3)
+      testToken(tokens[0], TokenType.Object, "hello")
+      testToken(tokens[1], TokenType.Period)
+      testToken(tokens[2], TokenType.Ident, "world")
     })
 
     it ("reads string literals", () => {
@@ -189,9 +188,9 @@ describe("token creation", () => {
 
     const results = [
       [TokenType.Number, TokenType.Add, TokenType.Number],
-      [TokenType.String, TokenType.Equal, TokenType.Ident, TokenType.Period, TokenType.Ident],
-      [TokenType.Ident, TokenType.LBracket, TokenType.Number, TokenType.RBracket, TokenType.Add,
-      TokenType.Number, TokenType.GreaterEqual, TokenType.LBrace, TokenType.Ident,
+      [TokenType.String, TokenType.Equal, TokenType.Object, TokenType.Period, TokenType.Ident],
+      [TokenType.Object, TokenType.LBracket, TokenType.Number, TokenType.RBracket, TokenType.Add,
+      TokenType.Number, TokenType.GreaterEqual, TokenType.LBrace, TokenType.Object,
       TokenType.Period, TokenType.Ident, TokenType.Subtract, TokenType.Number, TokenType.RBrace,
       TokenType.Multiply, TokenType.Number]
     ]
