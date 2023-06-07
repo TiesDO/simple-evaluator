@@ -2,8 +2,7 @@ export enum TokenType {
   Ident,
   String,
   Number,
-  True,
-  False,
+  Boolean,
   Undefined,
   Null,
   Object,
@@ -74,28 +73,44 @@ export class OperatorToken implements IToken {
 
   public evaluate(left: OperandToken, right: OperandToken, context: Object): any {
     let result: any
+    let type: TokenType = TokenType.Unknown
 
     switch(this.type) {
-      case TokenType.Add: result = left.value + right.value; break;
-      case TokenType.Subtract: result = left.value - right.value; break;
-      case TokenType.Multiply: result = left.value * right.value; break;
-      case TokenType.Divide: result = left.value / right.value; break;
+      case TokenType.Add:
+        result = left.value + right.value
+        type = left.type
+      break;
+      case TokenType.Subtract:
+        result = left.value - right.value
+        type = left.type
+      break;
+      case TokenType.Multiply:
+        result = left.value * right.value
+        type = left.type
+      break;
+      case TokenType.Divide:
+        result = left.value / right.value
+        type = left.type
+      break;
 
-      case TokenType.Period: result = left.value[right.value]; break;
+      case TokenType.Period:
+        result = left.value[right.value]
+        type = TokenType.Ident
+      break;
 
       case TokenType.Unknown: default: return undefined
     }
 
-    return new OperandToken(left.type, result)
+    return new OperandToken(type, result)
   }
 }
 
 export function isOperand(token: TokenType) {
-  return [TokenType.String, TokenType.Number, TokenType.True, TokenType.False,
+  return [TokenType.String, TokenType.Number, TokenType.Boolean,
     TokenType.Undefined, TokenType.Null, TokenType.Ident, TokenType.Object].includes(token)
 }
 
-export default class Tokenizer implements IterableIterator<IToken> {
+export default class Tokenizer {
   private idx: number
   private previous: IToken | undefined
 
@@ -112,7 +127,24 @@ export default class Tokenizer implements IterableIterator<IToken> {
     this.idx = 0
   }
 
-  next(): IteratorResult<IToken, undefined> {
+  readAll(): IToken[] {
+    const tokens: IToken[] = []
+    let current: IToken | undefined = undefined
+
+    do {
+      current = this.read()
+      if (!current) { break; }
+
+      switch(current?.type) {
+        case TokenType.LBracket: tokens.push(new OperatorToken(TokenType.Period))
+        default: tokens.push(<IToken>current)
+      }
+    } while(current)
+
+    return tokens
+  }
+
+  read(): IToken | undefined {
     let type: TokenType = TokenType.Unknown
     let charCount: number = 1
     let value: any = undefined;
@@ -165,13 +197,11 @@ export default class Tokenizer implements IterableIterator<IToken> {
         : new OperatorToken(type)
 
       this.previous = token
-      return { value: token, done: false }
+      return token
     } else {
-      return { value: undefined, done: true }
+      return undefined
     }
   }
-
-  [Symbol.iterator](): IterableIterator<IToken> { return this }
 
   private skipWhiteSpace() {
     while (this.withinBounds && this.isWhiteSpace) {
@@ -258,7 +288,7 @@ export default class Tokenizer implements IterableIterator<IToken> {
 
   private tokenizeWord(): [TokenType, number, any] {
     let offset = 0
-    let value = ""
+    let value: any = ""
 
     do {
       value += this.charAtOffset(offset)
@@ -268,10 +298,22 @@ export default class Tokenizer implements IterableIterator<IToken> {
     let type: TokenType;
 
     switch(value) {
-      case KEYWORDS[0]: type = TokenType.True; break;
-      case KEYWORDS[1]: type = TokenType.False; break;
-      case KEYWORDS[2]: type = TokenType.Null; break;
-      case KEYWORDS[3]: type = TokenType.Undefined; break;
+      case KEYWORDS[0]:
+        type = TokenType.Boolean
+        value = true
+      break;
+      case KEYWORDS[1]:
+        type = TokenType.Boolean
+        value = false
+      break;
+      case KEYWORDS[2]:
+        type = TokenType.Null
+        value = null
+      break;
+      case KEYWORDS[3]:
+        type = TokenType.Undefined
+        value = undefined
+      break;
       default: 
         type = this.previous?.type === TokenType.Period
           ? TokenType.Ident
@@ -279,11 +321,6 @@ export default class Tokenizer implements IterableIterator<IToken> {
       break;
     }
 
-    return [
-      type, 
-      offset, 
-      type === TokenType.Ident || type === TokenType.Object
-        ? value 
-        : undefined]
+    return [type, offset, value]
   }
 }

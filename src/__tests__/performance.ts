@@ -34,7 +34,7 @@ describe("performance", () => {
   }
 
   function runPreppedCustomEval(expression: string, amount: number): number {
-    const prep = toPostFix([...new Tokenizer(expression)])
+    const prep = toPostFix(new Tokenizer(expression).readAll())
 
     const start: number = performance.now()
 

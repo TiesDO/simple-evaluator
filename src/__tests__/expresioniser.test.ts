@@ -1,5 +1,6 @@
 import Tokenizer, { OperandToken, OperatorToken, TokenType } from '../tokenizer'
 import { evalutatePostFixExpression, toPostFix } from '../expresioniser'
+import evaluate from '..'
 
 test("to post fix", () => {
   const input = [
@@ -28,45 +29,53 @@ test("to post fix", () => {
 
 describe("evaluate basic expression", () => {
   it("5 + 4 = 9", () => {
-    const tokens = [...new Tokenizer("5+    4")]
-    expect(evalutatePostFixExpression(toPostFix(tokens), {})).toBe(9)
+    expect(evaluate('5 +    4', {})).toBe(9)
   })
 
   it("5 + 4 - 8 = 1", () => {
-    const tokens = [...new Tokenizer("5+    4 -   8")]
-    expect(evalutatePostFixExpression(toPostFix(tokens), {})).toBe(1)
+    expect(evaluate("5+    4 -   8", {})).toBe(1)
   })
 
   it("8 + 2 * 6 = 20", () => {
-    const tokens = [...new Tokenizer("8 + 2 * 6")]
-    expect(evalutatePostFixExpression(toPostFix(tokens), {})).toBe(20)
+    expect(evaluate("8 + 2 * 6", {})).toBe(20)
   })
 
   it("(8 + 2) * 6 = 60", () => {
-    const tokens = [...new Tokenizer("(8 + 2) * 6")]
-    expect(evalutatePostFixExpression(toPostFix(tokens), {})).toBe(60)
+    expect(evaluate("(8 + 2) * 6", {})).toBe(60)
   })
 
   it("6 * (8 / 2) = 24", () => {
-    const tokens = [...new Tokenizer("6 * (8 / 2)")]
-    expect(evalutatePostFixExpression(toPostFix(tokens), {})).toBe(24)
+    expect(evaluate("6 * (8 / 2)", {})).toBe(24)
   })
 })
 
 describe("property access", () => {
   it("evaluates properties to the context provided value", () => {
-    const tokens = [...new Tokenizer('session.count')]
     const context = { session: { count: 3 } }
-    const result = evalutatePostFixExpression(toPostFix(tokens), context)
+    const result = evaluate('session.count', context)
 
     expect(result).toBe(3)
   })
 
   it("evaluates multiple properties", () => {
-    const tokens = [...new Tokenizer('my.left * my.right')]
     const context = { my: { left: 3, right:  4 } }
-    const result = evalutatePostFixExpression(toPostFix(tokens), context)
+    const result = evaluate('my.left * my.right', context)
 
     expect(result).toBe(12)
   })
 })
+
+describe("array indexing", () => {
+  it("can do array indexes", () => {
+    const context = { foo: { bar: [1,2,3] }, bazz: [4,5,6]}
+    expect(evaluate('foo.bar[4 - 2]', context)).toBe(3)
+    expect(evaluate('bazz[2]', context)).toBe(6)
+    expect(evaluate('bazz[foo.bar[1]]', context)).toBe(6)
+    expect(evaluate('foo.bar[1] * foo.bar[2]', context)).toBe(6)
+    expect(evaluate('(foo.bar[1] * foo.bar[2]) - (3 - bazz[foo.bar[1]])', context)).toBe(9)
+    // (2 * 3) - (3 - 6) = 6 - - 3 = 9
+    // TODO: parse signed numbers and floats
+  })
+})
+
+

@@ -66,14 +66,26 @@ export function toPostFix(tokens: IToken[]): IToken[] {
       continue
     }
 
+    if (token.type === TokenType.LBracket) {
+      tokenStack.push(token)
+      continue
+    }
+
     if (token.type === TokenType.RBrace) {
       while(tokenStack.length && tokenStack.at(-1)?.type !== TokenType.LBrace) {
         output.push(<IToken>tokenStack.pop())
       }
       tokenStack.pop()
+    } else if (token.type === TokenType.RBracket) {
+      while(tokenStack.length && tokenStack.at(-1)?.type !== TokenType.LBracket) {
+        output.push(<IToken>tokenStack.pop())
+      }
+      tokenStack.pop()
     } else {
       while(
-        tokenStack.length && tokenStack.at(-1)?.type !== TokenType.LBrace
+        tokenStack.length
+        && tokenStack.at(-1)?.type !== TokenType.LBrace
+        && tokenStack.at(-1)?.type !== TokenType.LBracket
         && precedence(<TokenType>tokenStack.at(-1)?.type) >= precedence(token.type)
       ) {
         output.push(<IToken>tokenStack.pop())

@@ -2,7 +2,7 @@ import Tokenizer, { TokenType, IToken, isOperand } from '../tokenizer'
 
 describe("token creation", () => {
   const toTokens = (expression: string): IToken[] => {
-    return [...new Tokenizer(expression)]
+    return new Tokenizer(expression).readAll()
   }
 
   const testToken = (token: IToken, type: TokenType, value: any = undefined) => {
@@ -23,8 +23,9 @@ describe("token creation", () => {
     it ("reads opening bracket", () => {
       const tokens = toTokens("[")
 
-      expect(tokens).toHaveLength(1)
-      testToken(tokens[0], TokenType.LBracket)
+      expect(tokens).toHaveLength(2)
+      testToken(tokens[0], TokenType.Period)
+      testToken(tokens[1], TokenType.LBracket)
     })
 
     it ("reads closing bracket", () => {
@@ -158,24 +159,24 @@ describe("token creation", () => {
       const falseTokens = toTokens("false")
 
       expect(trueTokens).toHaveLength(1)
-      testToken(trueTokens[0], TokenType.True)
+      testToken(trueTokens[0], TokenType.Boolean, true)
 
       expect(falseTokens).toHaveLength(1)
-      testToken(falseTokens[0], TokenType.False)
+      testToken(falseTokens[0], TokenType.Boolean, false)
     })
 
     it ("reads null", () => {
       const tokens = toTokens("null")
 
       expect(tokens).toHaveLength(1)
-      testToken(tokens[0], TokenType.Null)
+      testToken(tokens[0], TokenType.Null, null)
     })
 
     it ("reads undefined", () => {
       const tokens = toTokens("undefined")
 
       expect(tokens).toHaveLength(1)
-      testToken(tokens[0], TokenType.Undefined)
+      testToken(tokens[0], TokenType.Undefined, undefined)
     })
   })
 
@@ -189,7 +190,7 @@ describe("token creation", () => {
     const results = [
       [TokenType.Number, TokenType.Add, TokenType.Number],
       [TokenType.String, TokenType.Equal, TokenType.Object, TokenType.Period, TokenType.Ident],
-      [TokenType.Object, TokenType.LBracket, TokenType.Number, TokenType.RBracket, TokenType.Add,
+      [TokenType.Object, TokenType.Period, TokenType.LBracket, TokenType.Number, TokenType.RBracket, TokenType.Add,
       TokenType.Number, TokenType.GreaterEqual, TokenType.LBrace, TokenType.Object,
       TokenType.Period, TokenType.Ident, TokenType.Subtract, TokenType.Number, TokenType.RBrace,
       TokenType.Multiply, TokenType.Number]
