@@ -13,6 +13,17 @@ describe("token creation", () => {
   }
 
   describe("scope denoters", () => {
+    it("reads arguments", () => {
+      const tokens = toTokens('myArray.includes(4)')
+      expect(tokens).toHaveLength(6)
+      testToken(tokens[0], TokenType.Object, 'myArray')
+      testToken(tokens[1], TokenType.Period)
+      testToken(tokens[2], TokenType.Method, 'includes')
+      testToken(tokens[3], TokenType.ArgumentOpen)
+      testToken(tokens[4], TokenType.Number, 4)
+      testToken(tokens[5], TokenType.ArgumentClose)
+    })
+
     it ("reads period", () => {
       const tokens = toTokens(".")
 

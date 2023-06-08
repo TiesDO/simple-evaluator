@@ -49,6 +49,20 @@ describe("evaluate basic expression", () => {
   })
 })
 
+describe("comparisons", () => {
+  it("equal", () => {
+    expect(evaluate('"a" == "a"')).toBeTruthy()
+    expect(evaluate('"b" == "a"')).toBeFalsy()
+    expect(evaluate('"b" != "a"')).toBeTruthy()
+    expect(evaluate('"a" != "a"')).toBeFalsy()
+
+    expect(evaluate('7 == 7')).toBeTruthy()
+    expect(evaluate('myNum == 7', { myNum: 7 })).toBeTruthy()
+    expect(evaluate('myNum != 8', { myNum: 7 })).toBeTruthy()
+    expect(evaluate('myNum.value != myOtherNum', { myNum: { value: 7}, myOtherNum: 90 })).toBeTruthy()
+  })
+})
+
 describe("property access", () => {
   it("evaluates properties to the context provided value", () => {
     const context = { session: { count: 3 } }
@@ -73,6 +87,7 @@ describe("array indexing", () => {
     expect(evaluate('bazz[foo.bar[1]]', context)).toBe(6)
     expect(evaluate('foo.bar[1] * foo.bar[2]', context)).toBe(6)
     expect(evaluate('(foo.bar[1] * foo.bar[2]) - (3 - bazz[foo.bar[1]])', context)).toBe(9)
+    expect(evaluate('(foo.bar[1] * foo.bar[2]) - (3 - bazz[foo.bar[1]]) == 9', context)).toBeTruthy()
     // (2 * 3) - (3 - 6) = 6 - - 3 = 9
     // TODO: parse signed numbers and floats
   })

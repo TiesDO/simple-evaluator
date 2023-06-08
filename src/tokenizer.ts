@@ -12,6 +12,9 @@ export enum TokenType {
   RBracket,
   LBrace,
   RBrace,
+  ArgumentOpen,
+  ArgumentClose,
+  Method,
 
   Equal,
   Lesser,
@@ -98,6 +101,31 @@ export class OperatorToken implements IToken {
         type = TokenType.Ident
       break;
 
+      case TokenType.Equal:
+        result = left.value === right.value
+        type = TokenType.Boolean
+      break;
+      case TokenType.NotEqual:
+        result = left.value !== right.value
+        type = TokenType.Boolean
+      break;
+      case TokenType.Lesser:
+        result = left.value < right.value
+        type = TokenType.Boolean
+      break;
+      case TokenType.LesserEqual:
+        result = left.value <= right.value
+        type = TokenType.Boolean
+      break;
+      case TokenType.Greater:
+        result = left.value > right.value
+        type = TokenType.Boolean
+      break;
+      case TokenType.GreaterEqual:
+        result = left.value >= right.value
+        type = TokenType.Boolean
+      break;
+
       case TokenType.Unknown: default: return undefined
     }
 
@@ -113,6 +141,7 @@ export function isOperand(token: TokenType) {
 export default class Tokenizer {
   private idx: number
   private previous: IToken | undefined
+  private argumentLevel: number = 0
 
   private get char() { return this.expression.charAt(this.idx) }
   private get nextChar() { return this.expression.charAt(this.idx + 1) }
@@ -137,6 +166,7 @@ export default class Tokenizer {
 
       switch(current?.type) {
         case TokenType.LBracket: tokens.push(new OperatorToken(TokenType.Period))
+
         default: tokens.push(<IToken>current)
       }
     } while(current)
@@ -158,8 +188,22 @@ export default class Tokenizer {
       case ']': type = TokenType.RBracket; break;
 
       // method/scope
-      case '(': type = TokenType.LBrace; break;
-      case ')': type = TokenType.RBrace; break;
+      case '(': 
+        if (this.previous?.type === TokenType.Ident || this.previous?.type === TokenType.Object) {
+          type = TokenType.ArgumentOpen
+          this.argumentLevel++
+        } else {
+          type = TokenType.LBrace
+        }
+      break;
+      case ')':
+        if (this.argumentLevel > 0) {
+          type = TokenType.ArgumentClose
+          this.argumentLevel--
+        } else {
+          type = TokenType.RBrace
+        }
+      break;
 
       // comparison operators
       case '=': [type, charCount] = this.tokenizeEqual(); break;
