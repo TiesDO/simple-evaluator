@@ -61,5 +61,29 @@ custom eval: ${getAvg(() => runCustomEval(expression, 1000), 100)}ms
 prepped eval: ${getAvg(() => runPreppedCustomEval(expression, 1000), 100)}ms`)
     })
 
+    it("with object access", () => {
+      const context = { foo: { bar: [1,2,3] }, bazz: [4,5,6]}
+
+      let prep = toPostFix(new Tokenizer('(foo.bar[1] * foo.bar[2]) - (3 - bazz[foo.bar[1]]) == 9').readAll())
+
+      let s = performance.now()
+      for(let i = 0; i < 10000; i++) {
+        evalutatePostFixExpression(prep, context)
+      }
+      const customRes = performance.now() - s
+
+      s = performance.now()
+      for(let i = 0; i < 10000; i++) {
+        eval('(context.foo.bar[1] * context.foo.bar[2]) - (3 - context.bazz[context.foo.bar[1]]) == 9')
+      }
+      const stdRes = performance.now() - s
+
+      expect(evaluate('(foo.bar[1] * foo.bar[2]) - (3 - bazz[foo.bar[1]]) == 9', context)).
+        toBe(eval('(context.foo.bar[1] * context.foo.bar[2]) - (3 - context.bazz[context.foo.bar[1]]) == 9'))
+
+      log(`complex access to object 1000x
+standard eval: ${stdRes}ms
+prepped eval: ${customRes}ms`)
+    })
   })
 })
