@@ -22,7 +22,7 @@ function isOperatorToken(token: IToken): token is OperatorToken {
   return token.classification === "operator"
 }
 
-export function evalutatePostFixExpression(tokens: IToken[], context: Object): any {
+export function evalutatePostFixExpression(tokens: IToken[], context: object): any {
   const operandStack: OperandToken[] = []
 
   for (const token of tokens) {
@@ -31,11 +31,11 @@ export function evalutatePostFixExpression(tokens: IToken[], context: Object): a
     } else if (isOperatorToken(token)) {
       if (operandStack.length < 2) { throw Error("not enough operands on stack") }
 
-      const right: OperandToken = <OperandToken>operandStack.pop()
-      let left: OperandToken = <OperandToken>operandStack.pop()
+      const right: OperandToken = operandStack.pop() as OperandToken
+      let left: OperandToken = operandStack.pop() as OperandToken
 
       if (left.type === TokenType.Object) {
-        const value: any = context[<keyof Object>left.value]
+        const value: any = context[left.value as keyof object]
         left = new OperandToken(TokenType.Ident, value)
       }
 
@@ -73,12 +73,12 @@ export function toPostFix(tokens: IToken[]): IToken[] {
 
     if (token.type === TokenType.RBrace) {
       while(tokenStack.length && tokenStack.at(-1)?.type !== TokenType.LBrace) {
-        output.push(<IToken>tokenStack.pop())
+        output.push(tokenStack.pop() as IToken)
       }
       tokenStack.pop()
     } else if (token.type === TokenType.RBracket) {
       while(tokenStack.length && tokenStack.at(-1)?.type !== TokenType.LBracket) {
-        output.push(<IToken>tokenStack.pop())
+        output.push(tokenStack.pop() as IToken)
       }
       tokenStack.pop()
     } else {
@@ -86,16 +86,16 @@ export function toPostFix(tokens: IToken[]): IToken[] {
         tokenStack.length
         && tokenStack.at(-1)?.type !== TokenType.LBrace
         && tokenStack.at(-1)?.type !== TokenType.LBracket
-        && precedence(<TokenType>tokenStack.at(-1)?.type) >= precedence(token.type)
+        && precedence(tokenStack.at(-1)?.type as TokenType) >= precedence(token.type)
       ) {
-        output.push(<IToken>tokenStack.pop())
+        output.push(tokenStack.pop() as IToken)
       }
       tokenStack.push(token)
     }
   }
 
   while(tokenStack.length) {
-    output.push(<IToken>tokenStack.pop())
+    output.push(tokenStack.pop() as IToken)
   }
 
   return output

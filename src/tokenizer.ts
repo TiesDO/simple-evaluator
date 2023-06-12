@@ -12,9 +12,6 @@ export enum TokenType {
   RBracket,
   LBrace,
   RBrace,
-  ArgumentOpen,
-  ArgumentClose,
-  Method,
 
   Equal,
   Lesser,
@@ -22,7 +19,6 @@ export enum TokenType {
   GreaterEqual,
   LesserEqual,
   NotEqual,
-  Ternary,
 
   Add,
   Subtract,
@@ -65,7 +61,7 @@ export class OperandToken implements IToken {
   public get classification(): "operand" { return "operand" }
   constructor(
     public readonly type: TokenType,
-    public readonly value: any = undefined) {
+    public readonly value?: any) {
   }
 }
 
@@ -74,7 +70,7 @@ export class OperatorToken implements IToken {
 
   constructor(public readonly type: TokenType) {}
 
-  public evaluate(left: OperandToken, right: OperandToken, context: Object): any {
+  public evaluate(left: OperandToken, right: OperandToken, context: object): any {
     let result: any
     let type: TokenType = TokenType.Unknown
 
@@ -158,8 +154,7 @@ export default class Tokenizer {
 
   readAll(): IToken[] {
     const tokens: IToken[] = []
-    let current: IToken | undefined = undefined
-
+    let current: IToken | undefined
     do {
       current = this.read()
       if (!current) { break; }
@@ -167,7 +162,7 @@ export default class Tokenizer {
       switch(current?.type) {
         case TokenType.LBracket: tokens.push(new OperatorToken(TokenType.Period))
 
-        default: tokens.push(<IToken>current)
+        default: tokens.push(current as IToken)
       }
     } while(current)
 
@@ -177,7 +172,7 @@ export default class Tokenizer {
   read(): IToken | undefined {
     let type: TokenType = TokenType.Unknown
     let charCount: number = 1
-    let value: any = undefined;
+    let value: any;
 
     this.skipWhiteSpace()
 
@@ -188,29 +183,14 @@ export default class Tokenizer {
       case ']': type = TokenType.RBracket; break;
 
       // method/scope
-      case '(': 
-        if (this.previous?.type === TokenType.Ident || this.previous?.type === TokenType.Object) {
-          type = TokenType.ArgumentOpen
-          this.argumentLevel++
-        } else {
-          type = TokenType.LBrace
-        }
-      break;
-      case ')':
-        if (this.argumentLevel > 0) {
-          type = TokenType.ArgumentClose
-          this.argumentLevel--
-        } else {
-          type = TokenType.RBrace
-        }
-      break;
+      case '(': type = TokenType.LBrace; break;
+      case ')': type = TokenType.RBrace; break;
 
       // comparison operators
       case '=': [type, charCount] = this.tokenizeEqual(); break;
       case '<': [type, charCount] = this.tokenizeLesser(); break;
       case '>': [type, charCount] = this.tokenizeGreater(); break;
       case '!': [type, charCount] = this.tokenizeNotEqual(); break;
-      case '?': TokenType.Ternary; break;
 
       // arithmic operators
       case '+': type = TokenType.Add; break;
@@ -305,7 +285,7 @@ export default class Tokenizer {
   }
 
   private tokenizeStringLiteral(): [TokenType, number, string] {
-    let wrapChar = this.char
+    const wrapChar = this.char
     let offset = 1
     let value = ""
 
@@ -327,7 +307,7 @@ export default class Tokenizer {
     } while (this.offsetInBounds(offset) && isDigit(this.charAtOffset(offset)))
 
     // TODO: floats n shit
-    return [TokenType.Number, offset, parseInt(value)]
+    return [TokenType.Number, offset, parseInt(value, 10)]
   }
 
   private tokenizeWord(): [TokenType, number, any] {
