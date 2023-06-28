@@ -140,6 +140,15 @@ describe("token creation", () => {
       testToken(tokens[2], TokenType.Ident, "world")
     })
 
+    it("reads identifiers snake_case", () => {
+      const tokens = toTokens("test.some_var")
+
+      expect(tokens).toHaveLength(3)
+      testToken(tokens[0], TokenType.Object, "test")
+      testToken(tokens[1], TokenType.Period)
+      testToken(tokens[2], TokenType.Ident, "some_var")
+    })
+
     it ("reads string literals", () => {
       const tokens = toTokens("'hello'")
 

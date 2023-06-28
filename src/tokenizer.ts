@@ -52,6 +52,10 @@ function isLetter(char: string): boolean {
   return (_a <= c && c <= _z) || (_A <= c && c <= _Z)
 }
 
+function isUnderscore(char: string): boolean {
+  return "_".charCodeAt(0) === char.charCodeAt(0)
+}
+
 export interface IToken {
   classification: "operand" | "operator"
   type: TokenType
@@ -317,7 +321,7 @@ export default class Tokenizer {
     do {
       value += this.charAtOffset(offset)
       offset++
-    } while (this.offsetInBounds(offset) && isLetter(this.charAtOffset(offset)))
+    } while (this.offsetInBounds(offset) && (isLetter(this.charAtOffset(offset)) || isUnderscore(this.charAtOffset(offset))))
 
     let type: TokenType;
 
